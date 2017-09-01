@@ -3,10 +3,11 @@ import uuid
 import sys
 import os
 import subprocess
-from PIL import Image, ImageEnhance
+from PIL import Image
 
-# Config
-RATIO = 1.5
+RATIO = 3.0
+THRESHOLD = 160  # 168
+BORDER = 100
 
 
 def transform_image(input_file):
@@ -18,15 +19,19 @@ def transform_image(input_file):
     try:
         img = Image.open(input_file).convert('LA')
         new_size = (int(img.size[0] * RATIO), int(img.size[1] * RATIO))
-        img = img.resize(new_size, Image.BILINEAR)
-        enhancer = ImageEnhance.Sharpness(img)
-        img = enhancer.enhance(7.0)
-        output_file = "%s.png" % uuid.uuid1()
+        img = img.resize(new_size, Image.ANTIALIAS)
+
+        # Threshold
+        img = img.point(lambda p: p > THRESHOLD and 255)
+
+        # Add borders
+        # TODO
+
+        output_file = "output/%s.png" % uuid.uuid1()
         img.save(output_file, "PNG")
         return output_file
-    except IOError, ex:
-        print "Error: %s" % ex
-        return None
+    except IOError as ex:
+        print("Error: %s" % ex)
 
 
 def call_ocr(image_path):
@@ -35,11 +40,12 @@ def call_ocr(image_path):
     :param image_path: an image path.
     :return: plain text.
     """
+    # tesseract -psm 8 test.png stdout
     proc = subprocess.Popen(['gocr', '%s' % image_path],
                             stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
     result = proc.communicate()
-    return result[0].strip().replace(' ','')
+    return result[0].strip().replace(' ', '')
 
 
 def procces_images(*files):
@@ -52,7 +58,7 @@ def procces_images(*files):
         if image_path:
             # Call OCR
             data = call_ocr(image_path)
-            print "File: %s - Text: %s" % (img_file, data)
+            print("File: %s - Text: %s" % (img_file, data))
             # Delete temp file!
             os.remove(image_path)
 

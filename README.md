@@ -1,2 +1,2 @@
-# ocrulus
-A python script that converts images to text using GOCR.
+# Ocrulus
+Python script for performing OCR on CUSIP9 images.
